@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>二位數進位加法｜數學概念動態表徵</title>
+<!--
+  範本：數學概念動態表徵介面（以「二位數進位加法」為示範）
+  - 單一 HTML、內嵌 CSS 與 JS，不連網也能使用
+  - 三種模式：教學探索／學生練習／學習單
+  - 老師功能：CRA 顯示切換、自動報讀、自己出題、學生模式（長按 2 秒解除）
+  換成其他概念時保留骨架，只替換標有 ★ 的概念專屬部分。
+-->
+<style>
+  /* ---------- 色彩與尺寸 ---------- */
+  :root{
+    --ones:#2563eb;      /* 個位：藍 */
+    --tens:#dc2626;      /* 十位：紅 */
+    --hundreds:#16a34a;  /* 百位：綠（需要時使用） */
+    --guide:#94a3b8;     /* 等分／提示線：灰色實線 */
+    --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+    --bg:#f8fafc; --card:#ffffff; --soft:#f1f5f9;
+    --primary:#0369a1; --ok:#047857; --warm:#fcd34d; --warmSoft:#fffbeb; --hintBg:#f0f9ff;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",sans-serif;background:var(--bg);color:var(--ink);
+       font-size:20px;line-height:1.5;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+  button,select,textarea{font:inherit;color:inherit}
+  .hidden{display:none!important}
+
+  /* ---------- 按鈕：最小 44×44 ---------- */
+  .btn{min-width:44px;min-height:44px;padding:6px 14px;border:0;border-radius:var(--radius);background:var(--soft);
+       cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:20px}
+  .btn:active{transform:scale(.97)}
+  .btn:disabled{opacity:.4;cursor:default}
+  .btn-primary{background:var(--primary);color:#fff}
+  .btn-ok{background:var(--ok);color:#fff}
+  .btn-warm{background:var(--warm);font-weight:700}
+  .btn-dark{background:#334155;color:#fff}
+  .btn-block{width:100%;font-size:24px;padding:8px}
+  .icon-btn{width:48px;height:48px;padding:0;font-size:24px}
+  .icon-btn[aria-pressed="true"]{background:var(--primary);color:#fff}
+  :focus-visible{outline:3px solid #f59e0b;outline-offset:2px}
+
+  /* ---------- 版面：頂部／左右／底部 ---------- */
+  #app{min-height:100vh;display:flex;flex-direction:column}
+  header{background:var(--card);border-bottom:2px solid var(--line);padding:8px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+  header h1{font-size:26px;margin:0 auto 0 0}
+  .bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+  .tab{font-weight:700}
+  .tab[aria-selected="true"]{background:var(--primary);color:#fff}
+  .toggle{display:inline-flex;align-items:center;gap:4px;min-height:44px;padding:0 10px;border-radius:10px;background:var(--soft);font-size:18px;cursor:pointer}
+  .toggle input{width:22px;height:22px}
+  main{flex:1;display:grid;grid-template-columns:1fr;gap:16px;padding:16px}
+  .card{background:var(--card);border-radius:18px;box-shadow:0 1px 4px rgba(15,23,42,.08);padding:16px}
+  .left{display:flex;flex-direction:column;gap:12px}
+  .left>*{flex:none}
+  /* 操作按鈕固定在問題區底部，平板上不會被捲走 */
+  #actionBar{position:sticky;bottom:-16px;background:var(--card);padding:8px 0 16px;margin-bottom:-16px;z-index:2}
+  .right{display:flex;flex-direction:column}
+  footer{background:var(--card);border-top:2px solid var(--line);padding:8px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+  @media (max-width:1199px){ .tray-label{display:none} }
+  /* 投影大螢幕：字再放大，後排也看得到 */
+  @media (min-width:1600px){ body{font-size:24px} #problem{font-size:60px} #vertical{font-size:64px} #hint{font-size:30px} .btn{font-size:24px} }
+  footer .push{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+  .muted{color:var(--muted);font-size:18px}
+  @media (min-width:768px){
+    #app{height:100vh;height:100dvh;min-height:0}
+    main{grid-template-columns:minmax(300px,2fr) 3fr;grid-template-rows:minmax(0,1fr);min-height:0}
+    .right{min-height:0} #mat{min-height:0}
+    .left{overflow-y:auto}
+    #sheetPanel{overflow-y:auto}
+  }
+
+  /* ---------- 問題區 ---------- */
+  #problem{font-size:44px;font-weight:700;text-align:center;letter-spacing:.05em}
+  #vertical{margin:0 auto;line-height:1.2;font-size:44px;font-weight:700;border-collapse:collapse}
+  #vertical td{padding:0 12px;text-align:center}
+  #vertical .carry{font-size:24px;height:30px}
+  #vertical .slot{width:64px;height:64px;font-size:44px;margin:4px 0}
+  .digit-t{color:var(--tens)} .digit-o{color:var(--ones)}
+  .box-warm{background:var(--warmSoft);border-radius:var(--radius);padding:12px}
+  .row{display:flex;gap:10px}
+  .row>*{flex:1}
+  .predict{background:#fff;border:2px solid var(--warm);font-size:26px}
+  .slot{font-weight:700;background:#fff;border:4px dashed;padding:0}
+  .slot.t{color:var(--tens);border-color:var(--tens)} .slot.o{color:var(--ones);border-color:var(--ones)}
+  .slot.active{box-shadow:0 0 0 5px #fde68a}
+  #keypad{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+  #keypad .btn{font-size:28px;font-weight:700;padding:2px 0}
+  #hint{font-size:24px;line-height:1.6;background:var(--hintBg);border-radius:var(--radius);padding:12px;min-height:64px;cursor:pointer}
+  #summary table{width:100%;text-align:left;border-collapse:collapse;font-size:17px;white-space:nowrap}
+  #summary th{color:var(--muted);font-weight:400}
+  #summary td,#summary th{padding:2px 6px}
+  .box-ok{background:#ecfdf5;border-radius:var(--radius);padding:12px}
+
+  /* ---------- 操作區（★ 位值板） ---------- */
+  #mat{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:12px;min-height:300px}
+  .col{border:4px solid;border-radius:var(--radius);display:flex;flex-direction:column;min-height:0;transition:box-shadow .3s}
+  .col.t{border-color:var(--tens)} .col.o{border-color:var(--ones)}
+  .col h3{margin:0;text-align:center;font-size:26px;padding:4px}
+  .zone{flex:1;display:flex;flex-wrap:wrap;align-content:flex-start;gap:8px;padding:8px;overflow:hidden}
+  .count{text-align:center;font-size:40px;font-weight:700;padding-bottom:4px}
+  .total-row{display:flex;justify-content:center;align-items:center;gap:16px;flex-wrap:wrap;margin-top:8px}
+  .total{text-align:center;font-size:24px}
+  .total b{font-size:40px}
+  .glow{box-shadow:0 0 0 6px #fde68a}
+  /* 具體物：十條與一塊，形狀與顏色同時區分 */
+  .one{width:30px;height:30px;background:var(--ones);border:2px solid #1e3a8a;border-radius:6px;flex:none}
+  .ten{width:30px;height:130px;background:repeating-linear-gradient(to bottom,var(--tens) 0 11px,#7f1d1d 11px 13px);border:2px solid #7f1d1d;border-radius:6px;flex:none}
+  .tray-item{background:#fff;border:2px solid var(--line);cursor:grab;touch-action:none}
+  .tray-item .ten{height:44px}
+  .ghost{position:fixed;z-index:50;pointer-events:none;transition:transform .9s ease-in-out,opacity .4s}
+  .pop{animation:pop .5s ease}
+  @keyframes pop{0%{transform:scale(.6)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
+  @media (prefers-reduced-motion:reduce){.pop{animation:none}}
+
+  /* 分數一律直式：分子在上、分母在下（分數概念使用） */
+  .frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1.1}
+  .frac>span:first-child{border-bottom:3px solid currentColor;padding:0 .2em}
+
+  /* ---------- 自己出題、學習單 ---------- */
+  #customPanel,#voicePanel{background:var(--warmSoft);border-bottom:2px solid #fde68a;padding:16px}
+  .vrow{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:10px}
+  .vrow>b{min-width:3em}
+  #voiceList{display:flex;flex-wrap:wrap;gap:8px}
+  .voice-btn{background:#fff;border:2px solid var(--line);flex-direction:column;gap:0;line-height:1.2;padding:6px 14px}
+  .voice-btn small{font-size:15px;color:var(--muted)}
+  .voice-btn[aria-pressed="true"]{background:var(--primary);border-color:var(--primary);color:#fff}
+  .voice-btn[aria-pressed="true"] small{color:#e0f2fe}
+  .rate-wrap{position:relative;width:320px;max-width:100%;padding-top:34px}
+  #rate{width:100%;height:44px;margin:0;accent-color:var(--primary)}
+  #rateBubble{position:absolute;top:0;transform:translateX(-50%);background:var(--primary);color:#fff;font-weight:700;
+    font-size:20px;padding:0 10px;border-radius:10px;white-space:nowrap}
+  .rate-ticks{display:flex;justify-content:space-between;font-size:15px;color:var(--muted)}
+  #customText{width:100%;max-width:560px;border:2px solid var(--line);border-radius:var(--radius);padding:8px;font-size:24px;user-select:text;-webkit-user-select:text}
+  #sheetPanel{flex:1;padding:16px}
+  .sheet-card{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+  .sheet-card label{display:flex;align-items:center;gap:10px}
+  .sheet-card select{min-height:44px;border:2px solid var(--line);border-radius:10px;padding:0 8px;background:#fff}
+  .sheet-card input[type=checkbox]{width:24px;height:24px}
+  #sheetPreview{border:2px dashed var(--guide);border-radius:var(--radius);padding:16px;max-height:55vh;overflow:auto;background:#fff}
+  #sheet{display:none}
+  @media print{
+    body{background:#fff}
+    #app{display:none!important}
+    #sheet{display:block!important}
+    .page{page-break-after:always}
+    @page{size:A4;margin:14mm}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- 頂部：標題＋模式切換＋老師功能 -->
+  <header>
+    <h1>二位數進位加法</h1>
+    <div id="teacherBar" class="bar">
+      <nav class="bar" role="tablist" aria-label="模式">
+        <button class="btn tab" data-mode="teach" role="tab">🧱 教學探索</button>
+        <button class="btn tab" data-mode="practice" role="tab">✏️ 學生練習</button>
+        <button class="btn tab" data-mode="sheet" role="tab">📄 學習單</button>
+      </nav>
+      <div class="bar" id="craToggles" title="逐步撤除鷹架">
+        <label class="toggle"><input type="checkbox" data-layer="C" checked>具體</label>
+        <label class="toggle"><input type="checkbox" data-layer="R" checked>圖示</label>
+        <label class="toggle"><input type="checkbox" data-layer="A" checked>算式</label>
+      </div>
+      <!-- 自動報讀：老師開啟後，學生模式也會持續報讀 -->
+      <button id="autoReadBtn" class="btn icon-btn" aria-pressed="false" title="自動報讀（識字量低的學生建議開啟）" aria-label="自動報讀">🔈</button>
+      <button id="voiceBtn" class="btn icon-btn" title="語音設定：風格、語速" aria-label="語音設定">🗣</button>
+      <button id="customBtn" class="btn icon-btn" title="自己出題" aria-label="自己出題">✎</button>
+      <button id="lockBtn" class="btn icon-btn" title="學生模式：把平板交給學生前按這裡" aria-label="學生模式">🔒</button>
+    </div>
+    <!-- 學生模式只露出這顆，老師長按 2 秒解除 -->
+    <button id="unlockBtn" class="btn hidden muted" title="老師長按 2 秒解除">老師（長按）</button>
+  </header>
+
+  <!-- 語音設定（老師功能） -->
+  <section id="voicePanel" class="hidden">
+    <div class="vrow" style="align-items:flex-start"><b>風格</b>
+      <div><div id="voiceList" role="radiogroup" aria-label="語音風格"></div>
+      <p class="muted" style="margin:6px 0 0">以上是這個瀏覽器提供的中文語音，不同電腦或平板會不一樣。</p></div></div>
+    <div class="vrow"><b>分段</b><label class="toggle"><input type="checkbox" id="chunkRead">🐢 分段慢讀（照標點一段一段念，每段停一下）</label></div>
+    <div class="vrow"><b>語速</b>
+      <div class="rate-wrap"><span id="rateBubble"></span>
+        <input type="range" id="rate" min="0.5" max="1.5" step="0.05" aria-label="語速">
+        <div class="rate-ticks"><span>0.5 慢</span><span>1.0</span><span>1.5 快</span></div></div></div>
+    <div class="vrow"><button id="voiceTest" class="btn btn-primary">▶ 試聽</button>
+      <button id="voiceReset" class="btn">恢復預設</button>
+      <button id="voiceClose" class="btn btn-ok">✔ 完成</button></div>
+  </section>
+
+  <!-- 自己出題 -->
+  <section id="customPanel" class="hidden">
+    <p style="margin:0 0 8px">每行一題，例如 <b>27+15</b>（兩個二位數，和不超過 99）。練習與學習單都會使用這些題目。</p>
+    <textarea id="customText" rows="4" placeholder="27+15&#10;38+24"></textarea>
+    <div class="bar" style="margin-top:8px">
+      <button id="customSave" class="btn btn-primary">使用這些題目</button>
+      <button id="customClear" class="btn">改回自動出題</button>
+      <span id="customMsg" class="muted"></span>
+    </div>
+  </section>
+
+  <!-- 中間：左問題、右操作 -->
+  <main id="workArea">
+    <section class="card left" aria-label="問題區">
+      <div id="progress" class="muted hidden"></div>
+      <div id="problem"></div>
+
+      <!-- 抽象層：直式，色彩編碼 -->
+      <div data-layer-box="A" id="vertWrap"><table id="vertical"></table></div>
+
+      <!-- 預測與驗證 -->
+      <div id="predictBox" class="box-warm hidden">
+        <p style="margin:0 0 8px">🤔 先猜猜看：個位合起來，會滿 10 個嗎？</p>
+        <div class="row">
+          <button class="btn predict" data-v="yes">會</button>
+          <button class="btn predict" data-v="no">不會</button>
+        </div>
+      </div>
+
+      <!-- 練習作答 -->
+      <div id="answerBox" class="hidden">
+        <p class="muted" style="margin:0 0 6px">點直式下面的格子，再按數字：</p>
+        <div id="keypad"></div>
+      </div>
+
+      <div id="summary" class="hidden"></div>
+      <!-- 提示與回饋（自我解釋引導）；點一下會念出來 -->
+      <div id="hint" role="status" aria-live="polite" title="點一下念給我聽"></div>
+      <div class="bar" id="actionBar">
+        <button id="prevStep" class="btn">◀ 上一步</button>
+        <button id="checkBtn" class="btn btn-ok hidden">✔ 檢查</button>
+        <button id="nextStep" class="btn btn-primary">下一步 ▶</button>
+        <button id="speak" class="btn icon-btn" aria-label="念給我聽">🔊</button>
+      </div>
+    </section>
+
+    <!-- 右：操作區（★ 概念專屬：位值板） -->
+    <section class="card right" aria-label="操作區">
+      <div id="mat">
+        <div class="col t"><h3 class="digit-t">十位</h3>
+          <div data-layer-box="C" class="zone" id="zoneT"></div>
+          <div data-layer-box="R" class="count digit-t" id="countT">0</div></div>
+        <div class="col o"><h3 class="digit-o">個位</h3>
+          <div data-layer-box="C" class="zone" id="zoneO"></div>
+          <div data-layer-box="R" class="count digit-o" id="countO">0</div></div>
+      </div>
+      <div class="total-row">
+        <div data-layer-box="R" class="total">位值板上一共是 <b id="matValue">0</b></div>
+        <button id="placedBtn" class="btn btn-warm hidden">👍 我擺好了</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- 學習單 -->
+  <section id="sheetPanel" class="hidden">
+    <div class="card sheet-card">
+      <h2 style="margin:0">產生學習單</h2>
+      <label>題數 <select id="sheetN"><option>6</option><option selected>10</option><option>15</option></select></label>
+      <label>題型 <select id="sheetType"><option value="carry">全部需要進位</option><option value="mix">進位與不進位混合</option></select></label>
+      <label><input type="checkbox" id="sheetGrid" checked>附位值格（十位紅、個位藍）</label>
+      <label><input type="checkbox" id="sheetKey" checked>附解答頁</label>
+      <p id="sheetNote" class="muted hidden" style="margin:0">目前使用「自己出題」的題目。</p>
+      <div class="bar">
+        <button id="makeSheet" class="btn btn-primary">🎲 重新出題</button>
+        <button id="printSheet" class="btn btn-ok">🖨 列印／存成 PDF</button>
+        <button id="downloadSheet" class="btn btn-dark">⬇ 下載學習單檔</button>
+      </div>
+      <div id="sheetPreview"></div>
+    </div>
+  </section>
+
+  <!-- 底部：元件選單 -->
+  <footer id="tray">
+    <span class="muted tray-label">點一下或拖到位值板：</span>
+    <button class="btn tray-item" data-kind="t"><span class="ten"></span>一條十</button>
+    <button class="btn tray-item" data-kind="o"><span class="one"></span>一個一</button>
+    <button id="regroup" class="btn btn-warm">🔄 10 個一換 1 條十</button>
+    <div class="push">
+      <select id="speed" class="btn" aria-label="動畫速度"><option value="1.6">慢</option><option value="1">中</option><option value="0.5">快</option></select>
+      <button id="undo" class="btn">↶ 撤銷</button>
+      <button id="reset" class="btn">⟲ 重置</button>
+      <button id="newQ" class="btn">🎲 換一題</button>
+    </div>
+  </footer>
+</div>
+
+<!-- 列印用學習單 -->
+<div id="sheet"></div>
+
+<script>
+/* ================= 共用狀態 ================= */
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+let mode = 'teach';
+let state = { t:0, o:0 };          // 位值板內容（★）
+let history = [];                  // 撤銷用
+let q = { a:27, b:15 };            // 目前題目（★）
+const DEMO = { a:27, b:15 };       // 教學探索預設題（★）
+let step = 0;
+let practice = { list:[], idx:0, log:[], ans:{t:null,o:null}, slot:'t' };
+let customList = null;             // 老師自己出的題目（練習與學習單共用）
+let pendingVerify = null;          // 預測後等待驗證
+let animating = false;
+let autoRead = false;
+
+/* ================= 題目（★ 概念專屬） ================= */
+const rnd = (a,b) => a + Math.floor(Math.random()*(b-a+1));
+const hasCarry = p => (p.a%10)+(p.b%10) >= 10;
+function makeProblem(kind='carry'){         // kind: 'carry' 需進位、'none' 不進位、'any' 都可
+  for(;;){
+    const a=rnd(11,88), b=rnd(11,99-a);
+    if(b<11) continue;
+    const p={a,b}, c=hasCarry(p);
+    if(kind==='carry' && !c) continue;
+    if(kind==='none' && c) continue;
+    return p;
+  }
+}
+function makeSet(n, type){                   // 混合題型時進位約占 2/3，並打散
+  const list=Array.from({length:n},(_,i)=>makeProblem(type==='carry'?'carry':(i%3===2?'none':'carry')));
+  return list.sort(()=>Math.random()-.5);
+}
+function parseCustom(text){
+  const out=[], bad=[];
+  text.split(/\n|,|，|、|;/).map(x=>x.trim()).filter(Boolean).forEach(line=>{
+    const m=line.replace(/＋/g,'+').replace(/[０-９]/g,d=>String.fromCharCode(d.charCodeAt(0)-65248)).replace(/\s/g,'').match(/^(\d{2})\+(\d{2})$/);
+    if(m && +m[1]+ +m[2]<=99) out.push({a:+m[1],b:+m[2]}); else bad.push(line);
+  });
+  return {out,bad};
+}
+
+/* ================= 繪製 ================= */
+function render(){
+  $('#zoneT').innerHTML='<div class="ten"></div>'.repeat(state.t);
+  $('#zoneO').innerHTML='<div class="one"></div>'.repeat(state.o);
+  $('#countT').textContent=state.t; $('#countO').textContent=state.o;
+  $('#matValue').textContent=state.t*10+state.o;
+  $('.col.o').classList.toggle('glow', state.o>=10);
+  $('#regroup').disabled = state.o<10 || animating;
+  $('#undo').disabled = !history.length;
+  renderVertical();
+}
+function renderVertical(reveal){
+  const s=q.a+q.b, c=hasCarry(q);
+  if(reveal===undefined) reveal = mode==='teach' && step>=5;
+  const showCarry = c && (reveal || (mode==='teach' && step>=4));
+  $('#problem').textContent=`${q.a} + ${q.b} = ${reveal?s:'?'}`;
+  $('#vertical').innerHTML=`
+    <tr><td></td><td class="carry digit-t">${showCarry?'1':''}</td><td class="carry"></td></tr>
+    <tr><td></td><td class="digit-t">${Math.floor(q.a/10)}</td><td class="digit-o">${q.a%10}</td></tr>
+    <tr><td>+</td><td class="digit-t">${Math.floor(q.b/10)}</td><td class="digit-o">${q.b%10}</td></tr>
+    <tr><td colspan="3" style="border-top:4px solid var(--ink);padding:0"></td></tr>
+    ${mode==='practice' && !reveal
+      ? `<tr><td></td><td><button class="btn slot t" data-slot="t" aria-label="十位答案">${practice.ans.t??''}</button></td><td><button class="btn slot o" data-slot="o" aria-label="個位答案">${practice.ans.o??''}</button></td></tr>`
+      : `<tr><td></td><td class="digit-t">${reveal?Math.floor(s/10):'&nbsp;'}</td><td class="digit-o">${reveal?s%10:''}</td></tr>`}`;
+  $$('#vertical .slot').forEach(b=>{ b.classList.toggle('active',b.dataset.slot===practice.slot); b.onclick=()=>setSlot(b.dataset.slot); });
+}
+function applyLayers(){
+  $$('#craToggles input').forEach(cb=>$$(`[data-layer-box="${cb.dataset.layer}"]`).forEach(el=>el.style.visibility=cb.checked?'visible':'hidden'));
+  // 練習時直式就是作答單，一律顯示；橫式題目收起來節省空間
+  if(mode==='practice') $('[data-layer-box="A"]').style.visibility='visible';
+  $('#problem').classList.toggle('hidden',mode==='practice');
+}
+
+/* ================= 報讀 ================= */
+const canSpeak='speechSynthesis' in window;
+/* 語音設定：風格（瀏覽器提供的語音）、分段慢讀、語速（老師設定，記在瀏覽器） */
+const VOICE_DEFAULT={voice:'', chunk:false, rate:0.85};
+let voiceCfg={...VOICE_DEFAULT};
+try{ Object.assign(voiceCfg, JSON.parse(localStorage.getItem('mcv-voice')||'{}')); }catch(e){}
+function saveVoice(){ try{ localStorage.setItem('mcv-voice',JSON.stringify(voiceCfg)); }catch(e){} }
+const region=v=>/TW/i.test(v.lang)?'臺灣':/HK/i.test(v.lang)?'香港':/^zh/i.test(v.lang)?'中國':v.lang;
+function zhVoices(){
+  const rank=v=>/zh[-_]TW/i.test(v.lang)?0:/zh[-_]HK/i.test(v.lang)?1:/^zh/i.test(v.lang)?2:9;
+  return speechSynthesis.getVoices().filter(v=>rank(v)<9).sort((a,b)=>rank(a)-rank(b));
+}
+function pickVoice(){
+  const list=zhVoices();
+  return list.find(v=>v.voiceURI===voiceCfg.voice) || list.find(v=>/zh[-_]TW/i.test(v.lang)) || list[0] || null;
+}
+function speak(t){
+  if(!canSpeak||!t) return;
+  speechSynthesis.cancel();
+  const v=pickVoice();
+  const text=t.replace(/\+/g,' 加 ').replace(/=/g,' 等於 ').replace(/\?/g,' 多少 ');
+  const parts= voiceCfg.chunk ? text.replace(/([，。！？；：、,!])/g,'$1\n').split('\n').map(x=>x.trim()).filter(Boolean) : [text];
+  parts.forEach(part=>{
+    const u=new SpeechSynthesisUtterance(part);
+    u.lang=v?v.lang:'zh-TW'; if(v) u.voice=v;
+    u.rate=voiceCfg.rate;
+    speechSynthesis.speak(u);
+  });
+}
+function renderVoicePanel(){
+  const list=zhVoices(), cur=list.some(v=>v.voiceURI===voiceCfg.voice)?voiceCfg.voice:'';
+  $('#voiceList').innerHTML=
+    `<button class="btn voice-btn" data-uri="" role="radio" aria-pressed="${cur===''}">自動<small>優先臺灣中文</small></button>`+
+    list.map(v=>`<button class="btn voice-btn" data-uri="${v.voiceURI.replace(/"/g,'&quot;')}" role="radio" aria-pressed="${cur===v.voiceURI}">${v.name.replace(/</g,'&lt;')}<small>${region(v)}</small></button>`).join('')+
+    (list.length?'':'<span class="muted">這個瀏覽器沒有中文語音，會使用系統預設聲音。</span>');
+  $$('.voice-btn').forEach(b=>b.onclick=()=>{ voiceCfg.voice=b.dataset.uri; saveVoice(); renderVoicePanel(); speak(SAMPLE); });
+  $('#chunkRead').checked=!!voiceCfg.chunk;
+  showRate();
+}
+function showRate(){
+  const r=voiceCfg.rate, el=$('#rate'); el.value=r;
+  const pct=(r-el.min)/(el.max-el.min);
+  const b=$('#rateBubble'); b.textContent=r.toFixed(2);
+  b.style.left=`calc(${pct*100}% + ${(0.5-pct)*20}px)`;   // 跟著滑桿圓點移動
+}
+const SAMPLE='27 + 15 = ?　個位有 12 個一，滿 10 個了，換成 1 條十。';
+if(canSpeak){
+  speechSynthesis.onvoiceschanged=()=>{ if(!$('#voicePanel').classList.contains('hidden')) renderVoicePanel(); };
+  $('#voiceBtn').onclick=()=>{ $('#customPanel').classList.add('hidden'); $('#voicePanel').classList.toggle('hidden'); renderVoicePanel(); };
+  $('#chunkRead').onchange=e=>{ voiceCfg.chunk=e.target.checked; saveVoice(); speak(SAMPLE); };
+  $('#rate').oninput=e=>{ voiceCfg.rate=+e.target.value; saveVoice(); showRate(); };
+  $('#rate').onchange=()=>speak(SAMPLE);
+  $('#voiceTest').onclick=()=>speak(SAMPLE);
+  $('#voiceClose').onclick=()=>$('#voicePanel').classList.add('hidden');
+  $('#voiceReset').onclick=()=>{ voiceCfg={...VOICE_DEFAULT}; saveVoice(); renderVoicePanel(); speak(SAMPLE); };
+}
+function say(t){ $('#hint').textContent=t; if(autoRead) speak(t); }
+function setAutoRead(on){
+  autoRead=on; const b=$('#autoReadBtn');
+  b.setAttribute('aria-pressed',on); b.textContent=on?'🔊':'🔈';
+  b.title=on?'自動報讀：開（再按一次關閉）':'自動報讀：關（識字量低的學生建議開啟）';
+  try{ localStorage.setItem('mcv-autoread', on?'1':'0'); }catch(e){}   // 只記老師設定，不記學生作答
+}
+$('#autoReadBtn').onclick=()=>{ setAutoRead(!autoRead); if(autoRead) speak($('#hint').textContent); };
+$('#speak').onclick=()=>speak($('#hint').textContent);
+$('#hint').onclick=()=>speak($('#hint').textContent);
+if(!canSpeak){ ['#speak','#autoReadBtn','#voiceBtn'].forEach(id=>$(id).classList.add('hidden')); }
+
+/* ================= 操作：加入、撤銷、重置 ================= */
+function push(){ history.push({...state}); if(history.length>100) history.shift(); }
+function add(kind){
+  if(animating) return;
+  if(kind==='t' && state.t>=9) return say('十位最多放 9 條。這一題用不到這麼多條十，可以按「撤銷」。');
+  if(kind==='o' && state.o>=18) return say('個位已經有很多個一了，先按「10 個一換 1 條十」。');
+  push(); state[kind]++; if(mode==='practice') practice.log[practice.idx].used=true; render();
+  (kind==='t'?$('#zoneT'):$('#zoneO')).lastElementChild?.classList.add('pop');
+  afterAction(false);
+}
+$('#undo').onclick=()=>{ if(animating||!history.length) return; state=history.pop(); render(); };
+$('#reset').onclick=()=>{ if(animating) return; push(); state={t:0,o:0}; render(); if(mode==='teach'){ step=0; showStep(); } };
+
+/* 點一下加入，或拖曳到位值板（Pointer Events，滑鼠與觸控通用） */
+$$('.tray-item').forEach(item=>{
+  item.addEventListener('pointerdown',e=>{
+    e.preventDefault();
+    const kind=item.dataset.kind, start={x:e.clientX,y:e.clientY};
+    const g=item.querySelector('span').cloneNode(true); g.classList.add('ghost'); document.body.appendChild(g);
+    const move=ev=>{ g.style.left=(ev.clientX-15)+'px'; g.style.top=(ev.clientY-22)+'px'; };
+    move(e);
+    const up=ev=>{
+      document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',up); document.removeEventListener('pointercancel',up);
+      g.remove();
+      const moved=Math.hypot(ev.clientX-start.x,ev.clientY-start.y)>10;
+      const r=$('#mat').getBoundingClientRect();
+      const inMat=ev.clientX>=r.left&&ev.clientX<=r.right&&ev.clientY>=r.top&&ev.clientY<=r.bottom;
+      if(ev.type!=='pointercancel' && (!moved||inMat)) add(kind);
+    };
+    document.addEventListener('pointermove',move); document.addEventListener('pointerup',up); document.addEventListener('pointercancel',up);
+  });
+});
+
+/* 關鍵轉換動畫：10 個一 → 1 條十 */
+$('#regroup').onclick=()=>{
+  if(animating||state.o<10) return;
+  animating=true; push(); render();
+  const speed=+$('#speed').value, dur=900*speed;
+  const zt=$('#zoneT').getBoundingClientRect();
+  const tx=zt.left+8+(state.t%Math.max(1,Math.floor((zt.width-16)/38)))*38, ty=zt.top+8;
+  [...$('#zoneO').children].slice(0,10).forEach((el,i)=>{
+    const r=el.getBoundingClientRect(), g=el.cloneNode(); g.classList.add('ghost');
+    g.style.left=r.left+'px'; g.style.top=r.top+'px'; g.style.transitionDuration=dur+'ms';
+    document.body.appendChild(g); el.style.visibility='hidden';
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{ g.style.transform=`translate(${tx-r.left}px,${ty+i*13-r.top}px)`; }));
+    setTimeout(()=>g.remove(),dur+100);
+  });
+  setTimeout(()=>{
+    state.o-=10; state.t+=1; animating=false; render();
+    $('#zoneT').lastElementChild?.classList.add('pop');
+    say('10 個一合成 1 條十，放到十位。'); afterAction(true);
+  },dur+120);
+};
+
+/* ================= 教學探索：分步驟（★） ================= */
+function steps(){
+  const s=q.a%10+q.b%10, sum=q.a+q.b;
+  return [
+    `先在位值板擺出 ${q.a}：${Math.floor(q.a/10)} 條十、${q.a%10} 個一。`,
+    `再擺出 ${q.b}：加上 ${Math.floor(q.b/10)} 條十、${q.b%10} 個一。`,
+    `先猜猜看：個位合起來會滿 10 個嗎？`,
+    s>=10 ? `個位有 ${s} 個一，滿 10 個了。按「10 個一換 1 條十」，看看會怎樣。` : `個位有 ${s} 個一，還不到 10 個，個位直接寫 ${s}。`,
+    s>=10 ? `十位多了 1 條十，直式上方記下進位的 1。` : `十位的條數合起來就好。`,
+    `數數看：${Math.floor(sum/10)} 條十、${sum%10} 個一，就是 ${sum}。${s>=10?'你是怎麼知道要換的？說說看。':'說說看，這一題為什麼個位直接寫？'}`
+  ];
+}
+function showStep(){
+  if(mode!=='teach') return;
+  const st=steps(); step=Math.max(0,Math.min(step,st.length-1));
+  $('#predictBox').classList.toggle('hidden',step!==2);
+  $('#prevStep').disabled=step===0; $('#nextStep').disabled=step===st.length-1;
+  renderVertical(); say(st[step]);
+}
+$('#nextStep').onclick=()=>{ if(mode==='teach'){ step++; showStep(); } else nextPractice(); };
+$('#prevStep').onclick=()=>{ step--; showStep(); };
+$$('.predict').forEach(b=>b.onclick=()=>{
+  const carry=hasCarry(q), guess=b.dataset.v==='yes';
+  if(mode==='practice') practice.log[practice.idx].predict=(guess===carry);
+  pendingVerify={guess,carry};
+  $('#predictBox').classList.add('hidden');
+  if(mode==='teach'){ step=3; showStep(); }
+  else say(`你猜「${guess?'會':'不會'}」。在位值板擺出兩個數，驗證看看！`);
+});
+/* 預測驗證：個位合起來的那一刻給回饋 */
+function afterAction(regrouped){
+  const v=pendingVerify; if(!v) return;
+  const onesTotal=q.a%10+q.b%10;
+  const reached = regrouped || (!v.carry && state.t*10+state.o===q.a+q.b) || (v.carry && state.o===onesTotal);
+  if(!reached) return;
+  say(v.guess===v.carry ? `你的預測和操作的結果一樣，觀察得很仔細！${v.carry&&!regrouped?'接著按「10 個一換 1 條十」。':''}`
+                        : `操作後發現個位${v.carry?'滿了 10 個':'還不到 10 個'}，動手驗證幫我們找到答案。${v.carry&&!regrouped?'接著按「10 個一換 1 條十」。':''}`);
+  pendingVerify=null;
+}
+
+/* ================= 學生練習 ================= */
+function startPractice(){
+  practice.list = customList ? customList.map(x=>({...x})) : makeSet(5,'mix').sort((x,y)=>hasCarry(y)-hasCarry(x));
+  practice.log = practice.list.map(()=>({hints:0,predict:null,done:false,used:false}));
+  practice.idx=0; loadPractice();
+}
+function setSlot(s){ practice.slot=s; $$('#vertical .slot').forEach(x=>x.classList.toggle('active',x.dataset.slot===s)); }
+function loadPractice(){
+  q=practice.list[practice.idx]; state={t:0,o:0}; history=[]; pendingVerify=null;
+  practice.ans={t:null,o:null}; practice.slot='t';
+  $('#progress').textContent=`第 ${practice.idx+1} 題，共 ${practice.list.length} 題`;
+  ['#answerBox','#predictBox','#placedBtn','#checkBtn','#vertWrap'].forEach(id=>$(id).classList.remove('hidden')); $('#summary').classList.add('hidden');
+  $('#nextStep').disabled=false; $('#nextStep').textContent= practice.idx<practice.list.length-1 ? '下一題 ▶' : '完成 ▶';
+  render(); say(`${q.a} + ${q.b} = ?　先猜猜看，再在位值板擺出兩個數。`);
+}
+function nextPractice(){
+  if($('#summary').classList.contains('hidden')===false) return startPractice();
+  if(practice.idx<practice.list.length-1){ practice.idx++; loadPractice(); } else showSummary();
+}
+/* 練習小結：只顯示在畫面上，不儲存 */
+function showSummary(){
+  const rows=practice.list.map((p,i)=>{ const l=practice.log[i];
+    return `<tr><td>${p.a} + ${p.b}</td><td>${l.predict===null?'—':l.predict?'一致':'與結果不同'}</td><td>${l.used?'✓':'—'}</td><td>${l.hints}</td><td>${l.done?'✓':'—'}</td></tr>`; }).join('');
+  $('#summary').innerHTML=`<div class="box-ok"><b>老師小結</b><span class="muted">（只顯示在畫面上，不會儲存，可截圖記錄）</span>
+    <table><tr><th>題目</th><th>預測</th><th>用教具</th><th>提示</th><th>完成</th></tr>${rows}</table></div>`;
+  $('#summary').classList.remove('hidden'); ['#answerBox','#predictBox','#placedBtn','#checkBtn'].forEach(id=>$(id).classList.add('hidden'));
+  $('#vertWrap').classList.add('hidden');
+  $('#nextStep').textContent='再練一次 ▶';
+  const done=practice.log.filter(l=>l.done).length;
+  say(done===practice.list.length ? `${done} 題都完成了！你每一題都有動手擺積木、檢查個位，做得很踏實。`
+                                  : `今天練習到這裡。你完成了 ${done} 題，每一題都有動手擺積木，下次我們繼續。`);
+}
+$('#placedBtn').onclick=()=>{
+  const v=state.t*10+state.o, sum=q.a+q.b, log=practice.log[practice.idx];
+  if(state.o>=10){ log.hints++; return say(`個位有 ${state.o} 個一，滿 10 個了，先按「10 個一換 1 條十」。`); }
+  if(v===sum) return say(`擺好了！位值板上是 ${state.t} 條十、${state.o} 個一。現在寫出答案。`);
+  log.hints++;
+  say(`我們對照題目檢查一次：${q.a} 是 ${Math.floor(q.a/10)} 條十、${q.a%10} 個一；${q.b} 是 ${Math.floor(q.b/10)} 條十、${q.b%10} 個一。可以按「撤銷」調整。`);
+};
+$('#keypad').innerHTML=[1,2,3,4,5,6,7,8,9,0].map(n=>`<button class="btn key" data-n="${n}">${n}</button>`).join('')+
+  '<button class="btn key" data-n="del" aria-label="清除">⌫</button><button class="btn key" data-n="read" aria-label="念出答案">🔊</button>';
+$$('.key').forEach(k=>k.onclick=()=>{
+  const n=k.dataset.n;
+  if(n==='read'){ const {t,o}=practice.ans; return speak(`十位 ${t??'空白'}，個位 ${o??'空白'}`); }
+  if(n==='del'){ practice.ans[practice.slot]=null; return renderVertical(); }
+  practice.ans[practice.slot]=+n;
+  if(practice.slot==='t') practice.slot='o';   // 寫完十位自動跳到個位，之後停在個位
+  renderVertical();
+});
+$('#checkBtn').onclick=()=>{
+  const sum=q.a+q.b, {t,o}=practice.ans, log=practice.log[practice.idx];
+  if(t===null||o===null) return say('十位和個位都要寫上數字喔。點一下格子，再按數字。');
+  if(t===Math.floor(sum/10) && o===sum%10){
+    log.done=true; renderVertical(true);
+    say(`答對了！${hasCarry(q)?'你把 10 個一換成 1 條十，':''}十位是 ${t}、個位是 ${o}。按「${practice.idx<practice.list.length-1?'下一題':'完成'}」。`);
+  } else if(o!==sum%10){ log.hints++; say('我們再看一次位值板的個位，數數看有幾個一？'); }
+  else { log.hints++; say(`個位寫對了！再數數看十位有幾條十${hasCarry(q)?'，記得加上換來的那 1 條':''}。`); }
+};
+
+/* ================= 學習單 ================= */
+let sheetList=[];
+function buildSheet(newSet){
+  const n=+$('#sheetN').value, type=$('#sheetType').value;
+  if(customList) sheetList=customList.slice();
+  else if(newSet || sheetList.length!==n) sheetList=makeSet(n,type);
+  $('#sheetNote').classList.toggle('hidden',!customList);
+  const grid=$('#sheetGrid').checked, key=$('#sheetKey').checked;
+  const cell=(d,c)=>`<td style="width:42px;height:44px;text-align:center;font-size:28px;font-weight:700;color:${c};${grid?`border:2px solid ${c};`:''}">${d}</td>`;
+  const item=(p,i,ans)=>{ const s=p.a+p.b;
+    return `<div style="display:inline-block;width:23%;margin:0 1% 14px;vertical-align:top;break-inside:avoid;page-break-inside:avoid">
+      <div style="font-size:18px;margin-bottom:4px">(${i+1})</div>
+      <table style="border-collapse:collapse">
+        <tr><td></td>${cell(ans&&hasCarry(p)?'<small>1</small>':'','#dc2626')}${cell('','#2563eb')}</tr>
+        <tr><td></td>${cell(Math.floor(p.a/10),'#dc2626')}${cell(p.a%10,'#2563eb')}</tr>
+        <tr><td style="font-size:30px;padding-right:6px">+</td>${cell(Math.floor(p.b/10),'#dc2626')}${cell(p.b%10,'#2563eb')}</tr>
+        <tr><td colspan="3" style="border-top:3px solid #000"></td></tr>
+        <tr><td></td>${cell(ans?Math.floor(s/10):'','#dc2626')}${cell(ans?s%10:'','#2563eb')}</tr>
+      </table></div>`; };
+  const head=t=>`<div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;font-size:20px;margin-bottom:8px"><b style="font-size:26px">${t}</b><span>姓名：＿＿＿＿＿＿　日期：＿＿＿＿＿＿</span></div>
+    <div style="font-size:18px;margin-bottom:12px;color:#334155">提示：個位（藍）合起來滿 10，就換成 1 個十，在十位（紅）上方記下 1。</div>`;
+  let html=`<div class="page">${head('二位數進位加法 學習單')}${sheetList.map((p,i)=>item(p,i,false)).join('')}</div>`;
+  if(key) html+=`<div class="page">${head('二位數進位加法 解答')}${sheetList.map((p,i)=>item(p,i,true)).join('')}</div>`;
+  $('#sheetPreview').innerHTML=html; $('#sheet').innerHTML=html;
+}
+$('#makeSheet').onclick=()=>buildSheet(true);
+['#sheetN','#sheetType'].forEach(id=>$(id).onchange=()=>buildSheet(true));
+['#sheetGrid','#sheetKey'].forEach(id=>$(id).onchange=()=>buildSheet(false));   // 換格式不換題目
+$('#printSheet').onclick=()=>{ try{ window.print(); }catch(e){ alert('這個預覽視窗不能列印，請按「下載學習單檔」再開啟列印。'); } };
+$('#downloadSheet').onclick=()=>{
+  const doc=`<!DOCTYPE html><html lang="zh-Hant-TW"><head><meta charset="UTF-8"><title>學習單_二位數進位加法</title>
+<style>body{font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",sans-serif;margin:0 auto;max-width:190mm}.page{page-break-after:always;padding:8mm 0}@page{size:A4;margin:14mm}</style>
+</head><body>${$('#sheet').innerHTML}<script>window.onload=()=>window.print()<\/script></body></html>`;
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([doc],{type:'text/html'}));
+  a.download='學習單_二位數進位加法.html'; document.body.appendChild(a); a.click(); a.remove();
+};
+
+/* ================= 模式切換 ================= */
+function setMode(m){
+  mode=m; pendingVerify=null;
+  $$('.tab').forEach(b=>b.setAttribute('aria-selected',b.dataset.mode===m));
+  const isSheet=m==='sheet';
+  $('#workArea').classList.toggle('hidden',isSheet); $('#tray').classList.toggle('hidden',isSheet);
+  $('#sheetPanel').classList.toggle('hidden',!isSheet);
+  $('#progress').classList.toggle('hidden',m!=='practice');
+  ['#answerBox','#summary','#placedBtn','#checkBtn'].forEach(id=>$(id).classList.add('hidden')); $('#vertWrap').classList.remove('hidden');
+  $('#prevStep').classList.toggle('hidden',m!=='teach');
+  $('#nextStep').textContent='下一步 ▶';
+  if(m==='teach'){ q={...(customList?customList[0]:DEMO)}; state={t:0,o:0}; history=[]; step=0; render(); showStep(); }
+  if(m==='practice') startPractice();
+  if(isSheet) buildSheet(false);
+  applyLayers();
+}
+$$('.tab').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+$('#newQ').onclick=()=>{
+  if(mode==='practice'){ practice.list[practice.idx]=makeProblem('carry'); practice.log[practice.idx]={hints:0,predict:null,done:false,used:false}; loadPractice(); }
+  else { q=makeProblem('carry'); state={t:0,o:0}; history=[]; step=0; render(); showStep(); }
+};
+$$('#craToggles input').forEach(cb=>cb.onchange=applyLayers);
+
+/* ================= 自己出題 ================= */
+$('#customBtn').onclick=()=>{ $('#voicePanel').classList.add('hidden'); $('#customPanel').classList.toggle('hidden'); };
+$('#customSave').onclick=()=>{
+  const {out,bad}=parseCustom($('#customText').value);
+  if(!out.length){ $('#customMsg').textContent='還沒有可以使用的題目，請照「27+15」的格式輸入。'; return; }
+  customList=out;
+  $('#customMsg').textContent=`已使用 ${out.length} 題。`+(bad.length?`這幾行請再調整：${bad.join('、')}`:'');
+  setMode(mode);
+};
+$('#customClear').onclick=()=>{ customList=null; $('#customText').value=''; $('#customMsg').textContent='已改回自動出題。'; setMode(mode); };
+
+/* ================= 學生模式：藏起老師功能，長按 2 秒解除 ================= */
+function setStudent(on){
+  $('#teacherBar').classList.toggle('hidden',on); $('#unlockBtn').classList.toggle('hidden',!on);
+  $('#customPanel').classList.add('hidden'); $('#voicePanel').classList.add('hidden');
+  ['#newQ','#speed'].forEach(id=>$(id).classList.toggle('hidden',on));
+  if(on) setMode('practice');
+}
+$('#lockBtn').onclick=()=>setStudent(true);
+let pressTimer=null;
+$('#unlockBtn').addEventListener('pointerdown',()=>{ $('#unlockBtn').textContent='繼續按住…'; pressTimer=setTimeout(()=>{ $('#unlockBtn').textContent='老師（長按）'; setStudent(false); },2000); });
+['pointerup','pointerleave','pointercancel'].forEach(ev=>$('#unlockBtn').addEventListener(ev,()=>{ clearTimeout(pressTimer); $('#unlockBtn').textContent='老師（長按）'; }));
+
+/* ================= 初始化與網址參數 =================
+   ?student=1 直接進學生模式　?read=1 開啟自動報讀　?q=27+15,38+24 指定題目 */
+const params=new URLSearchParams(location.search);
+let savedRead=null; try{ savedRead=localStorage.getItem('mcv-autoread'); }catch(e){}
+setAutoRead(params.get('read')==='1' || savedRead==='1');
+if(params.get('q')){ const {out}=parseCustom(params.get('q').replace(/ /g,'+')); if(out.length){ customList=out; $('#customText').value=out.map(p=>p.a+'+'+p.b).join('\n'); } }
+setMode('teach'); applyLayers();
+if(params.get('student')==='1') setStudent(true);
+</script>
+</body>
+</html>
