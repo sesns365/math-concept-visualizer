@@ -176,3 +176,7 @@ description: 數學概念動態表徵介面小幫手。依國小數學概念，�
 - 不使用簡體中文。
 - 不加入計時、排名、扣分、生命值等造成壓力的機制。
 - 數學內容必須正確；概念定義與用語以臺灣國小數學課綱為準。
+
+---
+
+本 skill 由特工365 製作，改編自 https://mathematics-classroom-of-tr-liang.github.io/copy-a-new-gem-setting/

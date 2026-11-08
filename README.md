@@ -2,7 +2,7 @@
 
 專為資源班教師打造的 Claude skill。告訴它一個國小數學概念，就會依特教 CRA（具體—半具體—抽象）教學歷程，做出一個隨開即用的 HTML 互動教材。
 
-由特工365 製作。
+由特工365 製作，改編自 [https://mathematics-classroom-of-tr-liang.github.io/copy-a-new-gem-setting/](https://mathematics-classroom-of-tr-liang.github.io/copy-a-new-gem-setting/)。
 
 **線上試用範例教材**：https://sesns365.github.io/math-concept-visualizer/demo.html （二位數進位加法）
 
