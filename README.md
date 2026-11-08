@@ -28,9 +28,9 @@
 
 | 資料夾／檔案 | 給誰用 |
 |---|---|
-| `math-concept-visualizer/` | Claude |
-| `gpt-gemini/instructions.md` | ChatGPT、Gemini（貼到「指示」） |
-| `gpt-gemini/example-template.html` | ChatGPT、Gemini（上傳成「知識」檔案） |
+| `math-concept-visualizer/` | Claude、Gemini（直接匯入成技能） |
+| `gpt-gemini/instructions.md` | ChatGPT（貼到「指示」），或貼在任何 AI 的對話開頭 |
+| `gpt-gemini/example-template.html` | ChatGPT（上傳成「知識」檔案） |
 
 ### Claude
 
@@ -50,21 +50,23 @@ Claude Code 使用者可直接把 `math-concept-visualizer` 資料夾放到 `~/.
 6. 對話開場白可填：「請幫我做一個二年級二位數進位加法的教材」「我要做數學教材，要怎麼開始？」。
 7. 儲存，選「只有知道連結的人」就能分享給其他老師。
 
-### Gemini（建立 Gem）
+### Gemini（技能 Skills）
 
-1. 到 Gemini 左側「Gem 管理員」→「新增 Gem」。
-2. 名稱：數學概念動態表徵介面小幫手。
-3. 「指示」：打開 `gpt-gemini/instructions.md`，全文複製貼上。
-4. 「知識」：上傳 `gpt-gemini/example-template.html`。
-5. 預設工具選「Canvas」（若有此選項）。
-6. 儲存後可用「共用」分享給其他老師。
+Gemini 已經用「技能（Skills）」取代 Gem，而且可以直接匯入和 Claude 相同的 `SKILL.md` 資料夾。
 
-不想建 Gem 或 GPT 時，也可以在新對話開頭先貼上 `instructions.md` 全文、附上 `example-template.html`，再提出需求。
+1. 用電腦網頁版或 Mac App 開啟 Gemini，到「自訂（Customize）→ 技能（Skills）」。
+2. 選擇匯入／上傳，選取整個 `math-concept-visualizer` 資料夾（內含 `SKILL.md` 與 `references`）。資料夾名稱要保持 `math-concept-visualizer`，不要改。
+3. 完成後，在對話中輸入 `/math-concept-visualizer`，或直接說「請幫我做一個二年級進位加法的教材」，Gemini 會自動套用。
+
+注意：Gemini 的技能目前不能和 Canvas 一起使用，教材會以 HTML 程式碼輸出。請複製後存成 `.html` 檔，用瀏覽器開啟。
+
+不想建立 GPT 或技能時，也可以在任何 AI 的新對話開頭先貼上 `instructions.md` 全文、附上 `example-template.html`，再提出需求。
 
 ### 三種 AI 的差別
 
 - **Claude** 的規則最完整（含自我檢查清單與特教調整表），範例檔已內含，會自動啟用。
-- **ChatGPT／Gemini** 用精簡版指示，核心功能相同；一定要上傳範例檔當知識檔案，產出品質才會穩定。
+- **Gemini** 匯入的是和 Claude 同一份 skill，規則一樣完整，但目前不能搭配 Canvas。
+- **ChatGPT** 用精簡版指示，核心功能相同；一定要上傳範例檔當知識檔案，產出品質才會穩定。
 - 不論哪一種，都可以用「保留○○、把○○換成○○」的方式滾動式微調。
 
 ## 使用範例
