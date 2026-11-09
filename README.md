@@ -10,6 +10,12 @@
 
 **線上試用範例教材**：https://sesns365.github.io/math-concept-visualizer/demo.html （二位數進位加法）
 
+## Gemini 最穩的用法：貼上一段文字
+
+打開 [gemini-paste.md 純文字版](https://raw.githubusercontent.com/sesns365/math-concept-visualizer/main/gpt-gemini/gemini-paste.md)，全選複製，貼進 Gemini 的新對話送出，接著直接說要做的教材（例如「請幫我做一個二年級二位數進位加法的教材」），Gemini 就會用 Canvas 產生互動 HTML。
+
+這份文字以原始「有愛無礙數學概念動態表徵介面小幫手」提示詞為主體，後面補上三種模式、有錯就要有所設定與老師功能，依 CRA 歷程設計。
+
 ## 最快的用法：在任何 AI 輸入一句話
 
 在 Claude、ChatGPT、Gemini 的對話框輸入：
@@ -36,7 +42,7 @@ AI 會讀取這個 repo 的規則與範例，在這次對話中變成「數學�
      安裝skill
      https://raw.githubusercontent.com/sesns365/math-concept-visualizer/main/gpt-gemini/instructions.md
      ```
-  2. 還是不行，打開 [instructions.md 純文字頁](https://raw.githubusercontent.com/sesns365/math-concept-visualizer/main/gpt-gemini/instructions.md)，全選複製後貼進對話，再說要做的教材。
+  2. 還是不行，改用上面「Gemini 最穩的用法」，把 gemini-paste.md 全文貼進對話。
   3. 想一勞永逸，用下面「永久安裝」的 Gemini 技能匯入。
 
 ## 每份教材都有三種模式
@@ -66,6 +72,7 @@ AI 會讀取這個 repo 的規則與範例，在這次對話中變成「數學�
 | `math-concept-visualizer/` | Claude、Gemini（直接匯入成技能） |
 | `gpt-gemini/instructions.md` | ChatGPT（貼到「指示」），或貼在任何 AI 的對話開頭 |
 | `gpt-gemini/example-template.html` | ChatGPT（上傳成「知識」檔案） |
+| `gpt-gemini/gemini-paste.md` | Gemini（整段貼進新對話），也可貼給任何 AI |
 
 ### Claude
 
