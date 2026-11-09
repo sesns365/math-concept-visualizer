@@ -404,10 +404,11 @@ function render(){
   $('#regroup').disabled = state.o<10 || animating;
   $('#undo').disabled = !history.length;
   renderVertical();
+  if(typeof refreshHelp==='function'){ refreshHelp(); if(mode==='teach' && step>=5 && !boardOK()) say(compareHint()); }
 }
 function renderVertical(reveal){
   const s=q.a+q.b, c=hasCarry(q);
-  if(reveal===undefined) reveal = mode==='teach' && step>=5;
+  if(reveal===undefined) reveal = mode==='teach' && step>=5 && boardOK();   // 位值板不對就不揭示答案
   const showCarry = c && (reveal || (mode==='teach' && step>=4));
   $('#problem').textContent=`${q.a} + ${q.b} = ${reveal?s:'?'}`;
   $('#vertical').innerHTML=`
@@ -563,25 +564,69 @@ function steps(){
 function showStep(){
   if(mode!=='teach') return;
   const st=steps(); step=Math.max(0,Math.min(step,st.length-1));
+  helpPending=false; $('#nextStep').textContent='下一步 ▶'; if(step<2) teachPredicted=false;
   $('#predictBox').classList.toggle('hidden',step!==2);
   $('#prevStep').disabled=step===0; $('#nextStep').disabled=step===st.length-1;
   renderVertical(); say(st[step]);
 }
-$('#nextStep').onclick=()=>{ if(mode==='teach'){ step++; showStep(); } else nextPractice(); };
+
+/* ===== 每一步的操作檢查（★）：位值板不符合時不前進、不揭示答案、不給稱讚 ===== */
+let helpPending=false, teachPredicted=false;
+const boardValue=()=>state.t*10+state.o;
+const boardOK=()=>boardValue()===q.a+q.b;
+function expectedState(i){          // 每一步結束時位值板應有的樣子
+  const a1=Math.floor(q.a/10),a0=q.a%10,b1=Math.floor(q.b/10),b0=q.b%10,sum=q.a+q.b;
+  if(i===0) return {t:a1,o:a0};
+  if(i===1) return {t:a1+b1,o:a0+b0};
+  return {t:Math.floor(sum/10),o:sum%10};
+}
+function compareHint(){             // 不直接說出答案，只引導對照
+  const v=boardValue(), more=v>q.a+q.b;
+  return `位值板上一共是 ${v}，比 ${q.a} 和 ${q.b} 合起來${more?'多':'少'}了一些。對照題目：${q.a} 是 ${Math.floor(q.a/10)} 條十、${q.a%10} 個一，${q.b} 是 ${Math.floor(q.b/10)} 條十、${q.b%10} 個一。可以按「撤銷」調整。`;
+}
+function checkStep(i){              // 回傳 null 代表通過；否則回傳具體提示
+  const a1=Math.floor(q.a/10),a0=q.a%10;
+  if(i===0) return (state.t===a1&&state.o===a0)?null:`位值板上現在是 ${state.t} 條十、${state.o} 個一。${q.a} 要擺 ${a1} 條十、${a0} 個一，再檢查一次。`;
+  if(i===1) return boardOK()?null:compareHint();
+  if(i===2) return teachPredicted?null:'先按「會」或「不會」，猜猜看個位合起來會不會滿 10 個。';
+  if(!boardOK()) return compareHint();
+  if(state.o>=10) return `個位有 ${state.o} 個一，滿 10 個了，先按「10 個一換 1 條十」。`;
+  return null;
+}
+function refreshHelp(){             // 學生自己修正後，恢復「下一步」
+  if(mode!=='teach'||!helpPending||checkStep(step)) return;
+  helpPending=false; $('#nextStep').textContent='下一步 ▶'; say('擺好了！按「下一步」繼續。');
+}
+$('#nextStep').onclick=()=>{
+  if(mode!=='teach') return nextPractice();
+  const msg=checkStep(step);
+  if(!msg){ step++; return showStep(); }
+  if(helpPending && boardOK() && state.o>=10){ helpPending=false; $('#nextStep').textContent='下一步 ▶'; return $('#regroup').click(); }   // 只差換十：播放換十動畫
+  if(helpPending && step!==2){       // 第二次按：老師示範用，直接幫忙擺好再前進
+    push(); state={...expectedState(step)}; render();
+    step++; return showStep();
+  }
+  helpPending=true; say(msg);
+  if(step!==2) $('#nextStep').textContent='幫我擺好 ▶';
+};
 $('#prevStep').onclick=()=>{ step--; showStep(); };
 $$('.predict').forEach(b=>b.onclick=()=>{
   const carry=hasCarry(q), guess=b.dataset.v==='yes';
   if(mode==='practice') practice.log[practice.idx].predict=(guess===carry);
   pendingVerify={guess,carry};
   $('#predictBox').classList.add('hidden');
-  if(mode==='teach'){ step=3; showStep(); }
+  if(mode==='teach'){ teachPredicted=true; step=3; showStep(); }
   else say(`你猜「${guess?'會':'不會'}」。在位值板擺出兩個數，驗證看看！`);
 });
 /* 預測驗證：個位合起來的那一刻給回饋 */
 function afterAction(regrouped){
   const v=pendingVerify; if(!v) return;
   const onesTotal=q.a%10+q.b%10;
-  const reached = regrouped || (!v.carry && state.t*10+state.o===q.a+q.b) || (v.carry && state.o===onesTotal);
+  const tensRaw=Math.floor(q.a/10)+Math.floor(q.b/10);
+  // 位值板要擺對才給預測回饋與稱讚
+  const reached = regrouped ? boardOK()
+                : v.carry ? (state.o===onesTotal && state.t===tensRaw)
+                : boardOK();
   if(!reached) return;
   say(v.guess===v.carry ? `你的預測和操作的結果一樣，觀察得很仔細！${v.carry&&!regrouped?'接著按「10 個一換 1 條十」。':''}`
                         : `操作後發現個位${v.carry?'滿了 10 個':'還不到 10 個'}，動手驗證幫我們找到答案。${v.carry&&!regrouped?'接著按「10 個一換 1 條十」。':''}`);
@@ -644,7 +689,8 @@ $('#checkBtn').onclick=()=>{
   if(t===null||o===null) return say('十位和個位都要寫上數字喔。點一下格子，再按數字。');
   if(t===Math.floor(sum/10) && o===sum%10){
     log.done=true; renderVertical(true); saveRecord(practice.idx);
-    say(`答對了！${hasCarry(q)?'你把 10 個一換成 1 條十，':''}十位是 ${t}、個位是 ${o}。按「${practice.idx<practice.list.length-1?'下一題':'完成'}」。`);
+    const boardNote = log.used && !boardOK() ? `答案寫對了！位值板上現在是 ${boardValue()}，再對照一下擺法，讓積木和答案一樣。` : '';
+    say(boardNote || `答對了！${hasCarry(q)?'你把 10 個一換成 1 條十，':''}十位是 ${t}、個位是 ${o}。按「${practice.idx<practice.list.length-1?'下一題':'完成'}」。`);
   } else if(o!==sum%10){ log.hints++; say('我們再看一次位值板的個位，數數看有幾個一？'); }
   else { log.hints++; say(`個位寫對了！再數數看十位有幾條十${hasCarry(q)?'，記得加上換來的那 1 條':''}。`); }
 };
