@@ -161,6 +161,12 @@
   #drawBar .btn[aria-pressed="true"]{background:var(--primary);color:#fff}
   .swatch{width:44px;height:44px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px var(--line);cursor:pointer;padding:0}
   .swatch[aria-pressed="true"]{box-shadow:0 0 0 4px var(--primary)}
+  .custom-color{position:relative;overflow:hidden;background:conic-gradient(#ef4444,#f59e0b,#eab308,#22c55e,#06b6d4,#3b82f6,#a855f7,#ef4444)}
+  .custom-color input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;padding:0}
+  .size-btn{width:48px;padding:0;background:#fff;border:2px solid var(--line)}
+  .size-btn[aria-pressed="true"]{border-color:var(--primary);background:#e0f2fe}
+  .size-btn i{display:block;border-radius:50%;background:var(--ink)}
+  .sep{width:2px;align-self:stretch;background:var(--line);margin:0 2px}
   #drawBtn[aria-pressed="true"]{background:var(--primary);color:#fff}
   #sheet{display:none}
   @media print{
@@ -321,7 +327,11 @@
       <button class="btn tool" data-tool="pen" aria-pressed="true">🖊 畫筆</button>
       <button class="btn tool" data-tool="hl">🖍 螢光筆</button>
       <button class="btn tool" data-tool="eraser">🧽 橡皮擦</button>
-      <span id="swatches" class="bar"></span>
+      <span class="sep"></span>
+      <span id="sizes" class="bar" role="radiogroup" aria-label="粗細"></span>
+      <span class="sep"></span>
+      <span id="swatches" class="bar" role="radiogroup" aria-label="顏色"></span>
+      <span class="sep"></span>
       <button id="inkClear" class="btn">🗑 清除</button>
       <label id="studentDrawWrap" class="toggle"><input type="checkbox" id="studentDraw">學生可用</label>
       <button id="drawDone" class="btn btn-ok">✔ 完成</button>
@@ -763,15 +773,22 @@ $('#recordClear').onclick=()=>{ if(confirm('確定要清除這台裝置上的全
 
 /* ================= 畫筆模式（畫筆、螢光筆、橡皮擦） ================= */
 const ink=$('#ink'), ctx=ink.getContext('2d');
-const PEN_COLORS=['#0f172a','#dc2626','#2563eb'], HL_COLORS=['#fde047','#86efac','#f9a8d4'];
-let strokes=[], cur=null, drawing=false, tool='pen', colorIdx=0, studentDraw=true;
+/* 顏色與粗細：每種工具各自記住上次的選擇 */
+const COLORS={
+  pen:['#0f172a','#dc2626','#ea580c','#ca8a04','#16a34a','#2563eb','#7c3aed','#db2777','#ffffff'],
+  hl: ['#fde047','#86efac','#67e8f9','#93c5fd','#f9a8d4','#fdba74','#c4b5fd']
+};
+const SIZES={ pen:[3,6,10,16], hl:[14,24,36,50], eraser:[20,36,56,80] };
+const SIZE_NAMES=['細','中','粗','特粗'];
+let strokes=[], cur=null, drawing=false, tool='pen', studentDraw=true;
+const toolCfg={ pen:{color:COLORS.pen[0], size:1}, hl:{color:COLORS.hl[0], size:1}, eraser:{size:1} };
 function sizeInk(){ const r=$('#workArea').getBoundingClientRect(), d=devicePixelRatio||1;
   ink.width=Math.max(1,r.width*d); ink.height=Math.max(1,r.height*d); ctx.setTransform(d,0,0,d,0,0); redrawInk(); }
 function drawStroke(st){
   if(st.pts.length<1) return;
   ctx.save(); ctx.lineCap='round'; ctx.lineJoin='round'; ctx.lineWidth=st.w;
   ctx.globalCompositeOperation= st.tool==='eraser'?'destination-out':'source-over';
-  ctx.globalAlpha= st.tool==='hl'?0.4:1; ctx.strokeStyle=st.color;
+  ctx.globalAlpha= st.tool==='hl'?0.4:1; ctx.strokeStyle=st.color||'#000';
   ctx.beginPath(); ctx.moveTo(st.pts[0][0],st.pts[0][1]);
   st.pts.forEach(([x,y])=>ctx.lineTo(x,y)); if(st.pts.length===1) ctx.lineTo(st.pts[0][0]+.1,st.pts[0][1]);
   ctx.stroke(); ctx.restore();
@@ -779,9 +796,21 @@ function drawStroke(st){
 function redrawInk(){ ctx.clearRect(0,0,ink.width,ink.height); strokes.forEach(drawStroke); if(cur) drawStroke(cur); }
 function clearInk(){ strokes=[]; cur=null; redrawInk(); }
 function renderSwatches(){
-  const cols= tool==='hl'?HL_COLORS:PEN_COLORS;
-  $('#swatches').innerHTML= tool==='eraser'?'':cols.map((c,i)=>`<button class="swatch" style="background:${c}" data-i="${i}" aria-pressed="${i===colorIdx}" aria-label="顏色 ${i+1}"></button>`).join('');
-  $$('.swatch').forEach(b=>b.onclick=()=>{ colorIdx=+b.dataset.i; renderSwatches(); });
+  const cfg=toolCfg[tool];
+  // 粗細：圓點大小直接表示筆寬
+  $('#sizes').innerHTML=SIZES[tool].map((w,i)=>{ const d=Math.min(34,Math.max(6,w*(tool==='pen'?2:0.7)));
+    return `<button class="btn size-btn" data-i="${i}" aria-pressed="${i===cfg.size}" aria-label="${SIZE_NAMES[i]}" title="${SIZE_NAMES[i]}"><i style="width:${d}px;height:${d}px;${tool==='hl'?`background:${cfg.color};opacity:.7`:tool==='eraser'?'background:#fff;border:2px solid var(--muted)':`background:${cfg.color==='#ffffff'?'#cbd5e1':cfg.color}`}"></i></button>`; }).join('');
+  $$('.size-btn').forEach(b=>b.onclick=()=>{ cfg.size=+b.dataset.i; renderSwatches(); });
+  // 顏色：常用色＋自選顏色
+  if(tool==='eraser'){ $('#swatches').innerHTML=''; }
+  else {
+    const list=COLORS[tool], isCustom=!list.includes(cfg.color);
+    $('#swatches').innerHTML=list.map(c=>`<button class="swatch" style="background:${c}" data-c="${c}" aria-pressed="${c===cfg.color}" aria-label="顏色 ${c}"></button>`).join('')+
+      `<label class="swatch custom-color" aria-pressed="${isCustom}" title="自選顏色"${isCustom?` style="background:${cfg.color}"`:''}><input type="color" id="customColor" value="${cfg.color}" aria-label="自選顏色"></label>`;
+    $$('.swatch[data-c]').forEach(b=>b.onclick=()=>{ cfg.color=b.dataset.c; renderSwatches(); });
+    $('#customColor').oninput=e=>{ cfg.color=e.target.value; };
+    $('#customColor').onchange=()=>renderSwatches();
+  }
   $$('#drawBar .tool').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tool===tool));
 }
 function setDraw(on){
@@ -792,11 +821,11 @@ function setDraw(on){
 $('#drawBtn').onclick=()=>setDraw(!drawing);
 $('#drawDone').onclick=()=>setDraw(false);          // 筆跡保留，換題時才清除
 $('#inkClear').onclick=clearInk;
-$$('#drawBar .tool').forEach(b=>b.onclick=()=>{ tool=b.dataset.tool; colorIdx=0; renderSwatches(); });
+$$('#drawBar .tool').forEach(b=>b.onclick=()=>{ tool=b.dataset.tool; renderSwatches(); });
 $('#studentDraw').onchange=e=>{ studentDraw=e.target.checked; lsSet('mcv-studentdraw',studentDraw?'1':'0'); };
 const pos=e=>{ const r=ink.getBoundingClientRect(); return [e.clientX-r.left,e.clientY-r.top]; };
 ink.addEventListener('pointerdown',e=>{ if(!drawing) return; e.preventDefault(); ink.setPointerCapture(e.pointerId);
-  cur={tool, color:(tool==='hl'?HL_COLORS:PEN_COLORS)[colorIdx], w: tool==='pen'?5:tool==='hl'?24:36, pts:[pos(e)]}; redrawInk(); });
+  const cfg=toolCfg[tool]; cur={tool, color:cfg.color, w:SIZES[tool][cfg.size], pts:[pos(e)]}; redrawInk(); });
 ink.addEventListener('pointermove',e=>{ if(!cur) return; cur.pts.push(pos(e)); redrawInk(); });
 ['pointerup','pointercancel'].forEach(ev=>ink.addEventListener(ev,()=>{ if(cur){ strokes.push(cur); cur=null; redrawInk(); } }));
 if('ResizeObserver' in window) new ResizeObserver(()=>sizeInk()).observe($('#workArea')); else addEventListener('resize',sizeInk);
