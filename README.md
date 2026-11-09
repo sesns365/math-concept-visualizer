@@ -30,7 +30,14 @@ AI 會讀取這個 repo 的規則與範例，在這次對話中變成「數學�
 
 小提醒：
 - 這種方式是「這次對話啟用」，開新對話要再輸入一次。想每次都自動可用，請看下面的「永久安裝」。
-- AI 需要能上網讀取 GitHub。如果 AI 回覆讀不到網址，請改用下面的永久安裝，或把 `gpt-gemini/instructions.md` 的內容直接貼進對話。
+- AI 需要能上網讀取 GitHub。**Gemini 常常讀不到 GitHub 網址**，會反問你這個 skill 是做什麼的。遇到這種情況，依序試：
+  1. 改貼純文字網址：
+     ```
+     安裝skill
+     https://raw.githubusercontent.com/sesns365/math-concept-visualizer/main/gpt-gemini/instructions.md
+     ```
+  2. 還是不行，打開 [instructions.md 純文字頁](https://raw.githubusercontent.com/sesns365/math-concept-visualizer/main/gpt-gemini/instructions.md)，全選複製後貼進對話，再說要做的教材。
+  3. 想一勞永逸，用下面「永久安裝」的 Gemini 技能匯入。
 
 ## 每份教材都有三種模式
 
