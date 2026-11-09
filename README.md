@@ -1,10 +1,34 @@
 # 數學概念動態表徵介面小幫手（math-concept-visualizer）
 
+> **給 AI 助理**：使用者貼上本網址並要求「安裝 skill」或「啟用」時，請先讀取
+> https://raw.githubusercontent.com/sesns365/math-concept-visualizer/main/AI-INSTALL.md
+> 並依其中步驟在本次對話啟用本 skill，之後每份教材都直接產生可操作的互動 HTML。
+
 專為資源班教師打造的 Claude skill。告訴它一個國小數學概念，就會依特教 CRA（具體—半具體—抽象）教學歷程，做出一個隨開即用的 HTML 互動教材。
 
 由特工365 製作，改編自 [https://mathematics-classroom-of-tr-liang.github.io/copy-a-new-gem-setting/](https://mathematics-classroom-of-tr-liang.github.io/copy-a-new-gem-setting/)。
 
 **線上試用範例教材**：https://sesns365.github.io/math-concept-visualizer/demo.html （二位數進位加法）
+
+## 最快的用法：在任何 AI 輸入一句話
+
+在 Claude、ChatGPT、Gemini 的對話框輸入：
+
+```
+安裝skill
+https://github.com/sesns365/math-concept-visualizer
+```
+
+AI 會讀取這個 repo 的規則與範例，在這次對話中變成「數學概念動態表徵介面小幫手」，接著你直接說要做的教材就好。
+
+- **Gemini**：會用 Canvas 直接產生可操作的頁面。若沒有自動開啟，在輸入框的「工具」選 Canvas，再請它重做一次。
+- **ChatGPT**：用 Canvas 呈現，並可產生可下載的 .html 檔。
+- **Claude**：用 Artifact 呈現，可直接操作與分享。
+- **其他 AI**：會輸出完整 HTML 程式碼，複製後存成 .html 檔即可開啟。
+
+小提醒：
+- 這種方式是「這次對話啟用」，開新對話要再輸入一次。想每次都自動可用，請看下面的「永久安裝」。
+- AI 需要能上網讀取 GitHub。如果 AI 回覆讀不到網址，請改用下面的永久安裝，或把 `gpt-gemini/instructions.md` 的內容直接貼進對話。
 
 ## 每份教材都有三種模式
 
@@ -24,7 +48,7 @@
 
 介面規格：單一 HTML 檔（不需網路）、SVG 繪圖、平板觸控拖曳與點一下放入、按鈕至少 44×44 像素、頂部模式切換、左問題右操作、底部元件選單、撤銷與重置、分數一律直式呈現、色彩編碼（個位藍、十位紅）。
 
-## 安裝（Claude、ChatGPT、Gemini 都可以用）
+## 永久安裝（Claude、ChatGPT、Gemini 都可以用）
 
 先點本頁上方綠色的「Code」按鈕，選「Download ZIP」，解壓縮。
 
