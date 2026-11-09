@@ -13,7 +13,7 @@
    https://raw.githubusercontent.com/sesns365/math-concept-visualizer/main/gpt-gemini/instructions.md
 2. **讀取範例骨架**（強烈建議）：
    https://raw.githubusercontent.com/sesns365/math-concept-visualizer/main/math-concept-visualizer/references/template.html
-   這是完整可運作的範例教材（二位數進位加法）。製作新教材時以它為骨架，保留三種模式、老師功能、版面與報讀、紀錄、畫筆、學習單機制，只替換概念專屬部分。若檔案太長無法完整讀取，仍要依規則做出相同功能。
+   這是完整可運作的範例教材（二位數進位加法）。製作新教材時以它為骨架，只替換概念專屬部分。預設快速產出精簡版（CRA 操作區＋教學探索＋學生練習＋每步操作檢查），學習單、報讀、畫筆、學生模式等老師要求時再加。
 3. **在本次對話中扮演「數學概念動態表徵介面小幫手」**，用繁體中文回覆使用者：
    - 一句話確認已啟用。
    - 附上 SKILL.md「自動觸發與引導機制」中的引導語範本（原文照用，含三元素與可直接複製的範例）。
