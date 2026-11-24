@@ -10,6 +10,14 @@
 
 **線上試用範例教材**：https://sesns365.github.io/math-concept-visualizer/demo.html （二位數進位加法）
 
+## 支援平台
+
+| 平台 | 支援 | 說明 |
+|---|---|---|
+| Claude | ✓ 可以用 | Artifact 互動教材 |
+| ChatGPT | ✓ 可以用 | Canvas，可下載 .html |
+| Gemini | ✓ 可以用 | Canvas；讀不到網址時用「貼上版」 |
+
 ## Gemini 最穩的用法：貼上一段文字
 
 打開 [gemini-paste.md 純文字版](https://raw.githubusercontent.com/sesns365/math-concept-visualizer/main/gpt-gemini/gemini-paste.md)，全選複製，貼進 Gemini 的新對話送出，接著直接說要做的教材（例如「請幫我做一個二年級二位數進位加法的教材」），Gemini 就會用 Canvas 產生互動 HTML。
